@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>TachyGraph — API Explorer</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0d1117; color: #c9d1d9; }
+    a { color: #58a6ff; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    header { background: #161b22; border-bottom: 1px solid #30363d; padding: 16px 32px; display: flex; align-items: center; justify-content: space-between; }
+    header h1 { font-size: 20px; color: #f0f6fc; }
+    header h1 span { color: #58a6ff; }
+    header .links a { margin-left: 16px; font-size: 13px; color: #8b949e; }
+    .container { max-width: 1100px; margin: 0 auto; padding: 24px 32px; }
+    .health-bar { display: flex; gap: 12px; margin-bottom: 24px; }
+    .health-chip { padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+    .health-ok { background: #0d1f0d; color: #3fb950; border: 1px solid #238636; }
+    .health-err { background: #1f0d0d; color: #f85149; border: 1px solid #da3633; }
+    .health-wait { background: #1f1a0d; color: #d29922; border: 1px solid #9e6a03; }
+    .section { margin-bottom: 32px; }
+    .section h2 { font-size: 16px; color: #f0f6fc; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #21262d; }
+    .endpoint { background: #161b22; border: 1px solid #30363d; border-radius: 8px; margin-bottom: 8px; overflow: hidden; }
+    .ep-header { display: flex; align-items: center; padding: 10px 16px; cursor: pointer; gap: 12px; }
+    .ep-header:hover { background: #1c2128; }
+    .method { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 4px; min-width: 52px; text-align: center; }
+    .method-get { background: #0d2818; color: #3fb950; }
+    .method-post { background: #0d1f3c; color: #58a6ff; }
+    .method-delete { background: #2d0d0d; color: #f85149; }
+    .ep-path { font-family: 'SF Mono', Consolas, monospace; font-size: 13px; color: #e6edf3; }
+    .ep-desc { font-size: 12px; color: #8b949e; margin-left: auto; }
+    .ep-body { display: none; padding: 16px; border-top: 1px solid #21262d; background: #0d1117; }
+    .ep-body.open { display: block; }
+    .ep-body textarea { width: 100%; min-height: 80px; background: #161b22; color: #c9d1d9; border: 1px solid #30363d; border-radius: 6px; padding: 10px; font-family: 'SF Mono', Consolas, monospace; font-size: 12px; resize: vertical; }
+    .ep-body .btn { background: #238636; color: #fff; border: none; padding: 8px 20px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; margin-top: 8px; }
+    .ep-body .btn:hover { background: #2ea043; }
+    .ep-body .response { margin-top: 12px; background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 12px; font-family: 'SF Mono', Consolas, monospace; font-size: 12px; max-height: 400px; overflow: auto; white-space: pre-wrap; word-break: break-word; }
+    .ep-body .response.error { border-color: #da3633; color: #f85149; }
+    .ep-body label { font-size: 12px; color: #8b949e; display: block; margin-bottom: 4px; }
+    .stats { display: flex; gap: 24px; margin-bottom: 24px; }
+    .stat { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px 20px; flex: 1; text-align: center; }
+    .stat .num { font-size: 28px; font-weight: 700; color: #58a6ff; }
+    .stat .lbl { font-size: 11px; color: #8b949e; margin-top: 4px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1><span>⚡</span> TachyGraph API Explorer</h1>
+    <div class="links">
+      <a href="http://localhost:8000/docs" target="_blank">Swagger UI</a>
+      <a href="http://localhost:8000/redoc" target="_blank">ReDoc</a>
+      <a href="/ui/graph.html">3D Graph</a>
+    </div>
+  </header>
+  <div class="container">
+    <div class="health-bar" id="healthBar"></div>
+    <div class="stats" id="statsBar"></div>
+    <div id="sections"></div>
+  </div>
+
+<script>
+const API = 'http://localhost:8000';
+
+const ENDPOINTS = [
+  { section: "Health & Status", endpoints: [
+    { method: "GET", path: "/health", desc: "DB + FAISS + Ollama status" },
+    { method: "GET", path: "/projects", desc: "List all projects with node counts" },
+    { method: "GET", path: "/models", desc: "List available Ollama models" },
+    { method: "GET", path: "/graph", desc: "Graph data for 3D visualization", params: "?similarity_threshold=0.75" },
+    { method: "GET", path: "/expiry/report", desc: "Expiry dashboard (24h, 7d, hot facts)" },
+  ]},
+  { section: "Search", endpoints: [
+    { method: "POST", path: "/search", desc: "Multi-signal pgvector search (two-stage)", body: '{"query": "neural network", "k": 5}' },
+    { method: "POST", path: "/search/deep", desc: "Ollama disambiguation → parallel strands", body: '{"query": "How do neural networks work?", "k": 5}' },
+    { method: "POST", path: "/search/factchain", desc: "Provenance-backed fact chain", body: '{"query": "Fokker-Planck equation", "k": 3}' },
+    { method: "POST", path: "/search/fast", desc: "FAISS-only search (<5ms GPU)", body: '{"query": "mobile learning", "k": 5}' },
+    { method: "POST", path: "/search/hybrid", desc: "FAISS recall → pgvector re-rank", body: '{"query": "mobile learning English", "k": 5}' },
+  ]},
+  { section: "Chat (RAG Pipeline)", endpoints: [
+    { method: "POST", path: "/chat", desc: "RAG chat (blocking or streaming)", body: '{"message": "What is the Fokker-Planck equation?"}' },
+    { method: "POST", path: "/chat/feedback", desc: "Correct/confirm last chat response", body: '{"session_id": "<uuid>", "feedback": "correct"}' },
+    { method: "GET", path: "/sessions", desc: "List recent chat sessions" },
+    { method: "DELETE", path: "/sessions/{id}", desc: "Delete a session", pathInput: true },
+  ]},
+  { section: "AI Agents", endpoints: [
+    { method: "POST", path: "/agent", desc: "Single agent — LLM decides tools", body: '{"message": "What do I know about neural networks?"}' },
+    { method: "POST", path: "/agent/orchestrator", desc: "Multi-agent orchestrator", body: '{"message": "What information do I have about mobile learning?"}' },
+    { method: "POST", path: "/agent/research", desc: "Research agent — autonomous", body: '{"topic": "FAISS IVF-PQ internals"}' },
+    { method: "POST", path: "/agent/maintain", desc: "Memory maintenance agent" },
+  ]},
+  { section: "Ingestion", endpoints: [
+    { method: "POST", path: "/ingest", desc: "Ingest text via HTTP", body: '{"text": "# Test\\n\\nSample document.", "source_url": "test://demo", "project_name": "demo"}' },
+    { method: "POST", path: "/ingest/web", desc: "Crawl a website and ingest", body: '{"url": "https://docs.example.com", "limit": 10, "depth": 2}' },
+    { method: "POST", path: "/ingest/chat", desc: "Import ChatGPT/Claude/Gemini conversations", body: '{"text": "Q: What is X?\\nA: X is Y.", "project_name": "chat-import"}' },
+    { method: "GET", path: "/ingest/local/scan", desc: "List files pending in ingest/ folder" },
+    { method: "POST", path: "/ingest/local", desc: "Ingest one local file", body: '{"filename": "my-doc.md", "project_name": "docs"}' },
+    { method: "POST", path: "/ingest/local/all", desc: "Ingest all pending local files", body: '{"project_name": "docs"}' },
+    { method: "POST", path: "/ingest/local/auto", desc: "Auto-ingest: scan + ingest all" },
+  ]},
+  { section: "Memory (Q&A Layer)", endpoints: [
+    { method: "POST", path: "/observe", desc: "Observe Q&A interaction → fact extraction", body: '{"interaction_text": "Q: What database does TachyGraph use? A: PostgreSQL 16 with pgvector."}' },
+  ]},
+  { section: "Graph Maintenance", endpoints: [
+    { method: "POST", path: "/compact", desc: "Deduplicate near-identical nodes", body: '{"project_id": "<uuid>"}' },
+    { method: "POST", path: "/mmr/recompute", desc: "Recompute MMR edges", body: '{"project_id": null}' },
+    { method: "POST", path: "/maintenance", desc: "Run all maintenance tasks" },
+    { method: "POST", path: "/resolve", desc: "Temporal conflict resolution", body: '{"project_id": "<uuid>"}' },
+    { method: "POST", path: "/temporal/reaffirm", desc: "Extend node validity", body: '{"node_id": "<uuid>", "extension_days": 10}' },
+    { method: "POST", path: "/temporal/expiring", desc: "List facts expiring soon", body: '{"project_id": "<uuid>"}' },
+    { method: "POST", path: "/faiss/sync", desc: "Sync pgvector → FAISS index", body: '{"project_id": null}' },
+  ]},
+  { section: "User Features", endpoints: [
+    { method: "GET", path: "/preferences", desc: "View user preferences" },
+    { method: "POST", path: "/preferences", desc: "Set user preferences", body: '{"preferences": {"response_style": "detailed", "expertise_level": "advanced"}}' },
+    { method: "POST", path: "/tasks", desc: "Create a reminder/task", body: '{"description": "Review test results", "due_days": 1}' },
+    { method: "GET", path: "/tasks", desc: "List all tasks" },
+    { method: "GET", path: "/tasks/due", desc: "List tasks due within 24h" },
+    { method: "POST", path: "/tasks/complete", desc: "Mark a task as completed", body: '{"task_id": "<uuid>"}' },
+  ]},
+  { section: "Export / Import", endpoints: [
+    { method: "POST", path: "/export", desc: "Export knowledge graph", body: '{"format": "json"}' },
+    { method: "POST", path: "/import", desc: "Import from backup", body: '{"data": {}}' },
+  ]},
+];
+
+function renderSections() {
+  const container = document.getElementById('sections');
+  ENDPOINTS.forEach((sec, si) => {
+    const div = document.createElement('div');
+    div.className = 'section';
+    div.innerHTML = `<h2>${sec.section}</h2>`;
+    sec.endpoints.forEach((ep, ei) => {
+      const id = `ep-${si}-${ei}`;
+      const mc = `method-${ep.method.toLowerCase()}`;
+      let bodyHtml = '';
+      if (ep.body) {
+        bodyHtml = `<label>Request Body (JSON)</label><textarea id="${id}-body">${ep.body}</textarea>`;
+      }
+      if (ep.pathInput) {
+        bodyHtml = `<label>Path parameter (e.g. session UUID)</label><input type="text" id="${id}-path" style="width:100%;padding:8px;background:#161b22;color:#c9d1d9;border:1px solid #30363d;border-radius:6px;font-family:monospace;font-size:12px;" placeholder="Enter UUID">`;
+      }
+      div.innerHTML += `
+        <div class="endpoint">
+          <div class="ep-header" onclick="toggle('${id}')">
+            <span class="method ${mc}">${ep.method}</span>
+            <span class="ep-path">${ep.path}${ep.params||''}</span>
+            <span class="ep-desc">${ep.desc}</span>
+          </div>
+          <div class="ep-body" id="${id}">
+            ${bodyHtml}
+            <button class="btn" onclick="fire('${id}','${ep.method}','${ep.path}',${!!ep.pathInput})">Execute</button>
+            <div class="response" id="${id}-res" style="display:none"></div>
+          </div>
+        </div>`;
+    });
+    container.appendChild(div);
+  });
+}
+
+function toggle(id) {
+  document.getElementById(id).classList.toggle('open');
+}
+
+async function fire(id, method, path, hasPathInput) {
+  const resEl = document.getElementById(`${id}-res`);
+  resEl.style.display = 'block';
+  resEl.className = 'response';
+  resEl.textContent = 'Loading...';
+
+  let url = API + path;
+  if (hasPathInput) {
+    const val = document.getElementById(`${id}-path`).value.trim();
+    if (!val) { resEl.textContent = 'Enter a path parameter'; resEl.className = 'response error'; return; }
+    url = url.replace('{id}', val);
+  }
+
+  const opts = { method };
+  if (method === 'POST') {
+    opts.headers = { 'Content-Type': 'application/json' };
+    const bodyEl = document.getElementById(`${id}-body`);
+    if (bodyEl) opts.body = bodyEl.value;
+  }
+
+  try {
+    const res = await fetch(url, opts);
+    const ct = res.headers.get('content-type') || '';
+    let text;
+    if (ct.includes('json')) {
+      text = JSON.stringify(await res.json(), null, 2);
+    } else {
+      text = await res.text();
+    }
+    resEl.textContent = text;
+    if (!res.ok) resEl.className = 'response error';
+  } catch (e) {
+    resEl.textContent = `Error: ${e.message}`;
+    resEl.className = 'response error';
+  }
+}
+
+async function loadHealth() {
+  const bar = document.getElementById('healthBar');
+  try {
+    const res = await fetch(`${API}/health`);
+    const d = await res.json();
+    bar.innerHTML = `
+      <span class="health-chip ${d.db==='ok'?'health-ok':'health-err'}">DB: ${d.db}</span>
+      <span class="health-chip ${d.faiss==='ok'?'health-ok':d.faiss==='unavailable'?'health-wait':'health-err'}">FAISS: ${d.faiss} (${d.faiss_mode}${d.faiss_vectors!==undefined?' · '+d.faiss_vectors+' vectors':''})</span>
+    `;
+  } catch(e) {
+    bar.innerHTML = '<span class="health-chip health-err">API unreachable</span>';
+  }
+}
+
+async function loadStats() {
+  const bar = document.getElementById('statsBar');
+  try {
+    const [proj, expiry] = await Promise.all([
+      fetch(`${API}/projects`).then(r=>r.json()),
+      fetch(`${API}/expiry/report`).then(r=>r.json()),
+    ]);
+    bar.innerHTML = `
+      <div class="stat"><div class="num">${proj.count}</div><div class="lbl">Projects</div></div>
+      <div class="stat"><div class="num">${expiry.total_nodes}</div><div class="lbl">Total Nodes</div></div>
+      <div class="stat"><div class="num">${expiry.expiring_24h}</div><div class="lbl">Expiring 24h</div></div>
+      <div class="stat"><div class="num">${expiry.expiring_7d}</div><div class="lbl">Expiring 7d</div></div>
+    `;
+  } catch(e) {}
+}
+
+renderSections();
+loadHealth();
+loadStats();
+</script>
+</body>
+</html>

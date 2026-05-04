@@ -1,0 +1,206 @@
+MIT License
+
+Copyright (c) 2025 TachyGraph Contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+================================================================================
+DISCLAIMER
+================================================================================
+
+TachyGraph is an experimental, personal knowledge management system provided
+"as is" without warranty of any kind. This software:
+
+- May contain bugs, unhandled edge cases, and untested code paths
+- Has not undergone formal security auditing or penetration testing
+- Is not recommended for production use without thorough review
+- Relies on third-party LLMs that may produce inaccurate, incomplete, or
+  hallucinated outputs — always verify critical information independently
+- Stores data locally in PostgreSQL with default credentials that must be
+  changed before any non-local deployment
+- Has features that may be partially complete or behave unexpectedly
+  under certain conditions
+
+The authors and contributors assume no responsibility for data loss,
+security incidents, or incorrect information produced by this system.
+Use at your own risk.
+
+================================================================================
+THIRD-PARTY ACKNOWLEDGMENTS
+================================================================================
+
+TachyGraph is built on the shoulders of the following open source projects.
+We are deeply grateful to their authors and communities.
+
+--- LLM INFERENCE & MODELS ---
+
+Ollama
+https://github.com/ollama/ollama
+License: MIT
+Local LLM inference server powering all generation and embedding calls.
+
+Qwen3-Coder (30B) — by Alibaba Cloud / Qwen Team
+https://github.com/QwenLM/Qwen3
+License: Apache 2.0
+Default generation model for summarization, fact extraction, disambiguation, and agent reasoning.
+
+mxbai-embed-large — by Mixedbread AI
+https://huggingface.co/mixedbread-ai/mxbai-embed-large-v1
+License: Apache 2.0
+Default embedding model producing 1024-dimensional vectors for semantic search.
+
+--- DATABASE & VECTOR SEARCH ---
+
+PostgreSQL
+https://www.postgresql.org/
+License: PostgreSQL License
+Core relational database storing the knowledge graph, sessions, and all state.
+
+pgvector — by Andrew Kane
+https://github.com/pgvector/pgvector
+License: PostgreSQL License
+Vector similarity search extension for PostgreSQL, providing HNSW indexing and cosine distance operations.
+
+pgvector-python — by Andrew Kane
+https://github.com/pgvector/pgvector-python
+License: MIT
+Python client for pgvector, used for registering vector types with psycopg.
+
+FAISS — by Meta AI Research
+https://github.com/facebookresearch/faiss
+License: MIT
+High-performance vector similarity search library for CPU and GPU, used for accelerated approximate nearest neighbor retrieval.
+
+--- WEB FRAMEWORK & NETWORKING ---
+
+FastAPI — by Sebastián Ramírez
+https://github.com/fastapi/fastapi
+License: MIT
+Async web framework powering all TachyGraph API endpoints.
+
+Uvicorn
+https://github.com/encode/uvicorn
+License: BSD 3-Clause
+ASGI server running the FastAPI application.
+
+httpx
+https://github.com/encode/httpx
+License: BSD 3-Clause
+HTTP client for Ollama API communication and web crawling.
+
+--- AI AGENTS ---
+
+Strands Agents SDK — by Amazon Web Services
+https://github.com/strands-agents/sdk-python
+License: Apache 2.0
+Lightweight agent framework powering the single agent, orchestrator, researcher, and memory maintenance agents.
+
+Model Context Protocol (MCP)
+https://github.com/modelcontextprotocol
+License: MIT
+Protocol implementation for IDE integration (Claude Desktop, VS Code, Cursor).
+
+--- PYTHON LIBRARIES ---
+
+psycopg 3 — by Daniele Varrazzo
+https://github.com/psycopg/psycopg
+License: LGPL 3.0
+PostgreSQL adapter for Python, providing connection pooling and async support.
+
+NumPy
+https://github.com/numpy/numpy
+License: BSD 3-Clause
+Numerical computing library used for vector normalization and FAISS interop.
+
+LangChain Text Splitters
+https://github.com/langchain-ai/langchain
+License: MIT
+Markdown and recursive character text splitting for document chunking.
+
+APScheduler
+https://github.com/agronholm/apscheduler
+License: MIT
+Background task scheduler for MMR recomputation and maintenance cron jobs.
+
+BeautifulSoup 4 — by Leonard Richardson
+https://www.crummy.com/software/BeautifulSoup/
+License: MIT
+HTML parsing for the local web scraper fallback.
+
+html2text — by Aaron Swartz (original), Alireza Savand (maintainer)
+https://github.com/Alir3z4/html2text
+License: GPL-3.0-only
+HTML to Markdown conversion for web crawl ingestion.
+
+PyMuPDF (fitz)
+https://github.com/pymupdf/PyMuPDF
+License: AGPL 3.0 / Commercial
+PDF text extraction for local file ingestion.
+
+Pydantic — by Samuel Colvin
+https://github.com/pydantic/pydantic
+License: MIT
+Data validation for all FastAPI request/response models.
+
+--- INFRASTRUCTURE ---
+
+Docker & Docker Compose
+https://github.com/docker
+License: Apache 2.0
+Containerization and orchestration for the full stack.
+
+Python 3.11
+https://www.python.org/
+License: PSF License
+Runtime language for the entire application.
+
+--- OPTIONAL DEPENDENCIES ---
+
+faster-whisper (optional)
+https://github.com/SYSTRAN/faster-whisper
+License: MIT
+Audio transcription for mp3/wav/m4a ingestion when enabled.
+
+Cloudflare Browser Rendering API (optional, untested)
+https://developers.cloudflare.com/browser-rendering/
+Hosted browser automation service for rendering JavaScript-heavy pages and extracting content; falls back to the local scraper (httpx + BeautifulSoup) by default.
+
+--- SAMPLE DATA ---
+
+"A deep learning framework for jointly solving transient Fokker-Planck
+equations with arbitrary parameters and initial distributions"
+  Authors: Xiaolong Wang, Jing Feng, Qi Liu, Chengli Tan, Yuanyuan Liu, Yong Xu
+  Institutions: Shaanxi Normal University, Northwestern Polytechnical University,
+                Xi'an University of Posts and Telecommunications,
+                Institute of Science Tokyo
+  arXiv: 2604.06001v1 [physics.comp-ph]
+  Used as sample text content for testing the ingestion pipeline.
+  This paper is included solely for demonstration purposes and remains the
+  intellectual property of its authors. All rights belong to the original authors.
+
+"Statistical description of dust polarized emission from the diffuse
+interstellar medium using RWST approach"
+  Used as sample web content for testing the web crawl ingestion pipeline.
+  This paper is included solely for demonstration purposes and remains the
+  intellectual property of its authors. All rights belong to the original authors.
+
+================================================================================
+
+Thank you to every contributor, maintainer, and community member behind these
+projects. Open source makes TachyGraph possible.

@@ -1,0 +1,24 @@
+psycopg[binary]>=3.1
+psycopg-pool>=3.1
+pgvector>=0.3
+numpy>=1.26
+# scikit-learn no longer needed — BM25 uses pure Python tokenizer
+# llama-cpp-python>=0.2    # REMOVED: using Ollama instead
+langchain-text-splitters>=0.2
+fastapi>=0.111
+uvicorn>=0.30
+httpx>=0.27
+apscheduler>=3.10
+mcp>=1.0
+strands-agents>=1.0
+ollama>=0.4
+pymupdf>=1.24
+beautifulsoup4>=4.12
+html2text>=2024.2
+
+# FAISS: install ONE (not both)
+faiss-cpu>=1.7.4            # DEFAULT: works everywhere, no GPU needed
+# faiss-gpu>=1.7.4          # OPTIONAL: uncomment if CUDA available (replaces faiss-cpu)
+
+# OPTIONAL: Audio transcription (uncomment to enable)
+# faster-whisper>=1.0       # Requires ~1GB for base model download on first use

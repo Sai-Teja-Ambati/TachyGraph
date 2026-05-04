@@ -1,0 +1,101 @@
+services:
+  tachy_db:
+    image: pgvector/pgvector:pg16
+    container_name: tachygraph_db
+    restart: always
+    shm_size: '256mb'
+    environment:
+      POSTGRES_USER: tachy_admin
+      POSTGRES_PASSWORD: tachy_password_2026
+      POSTGRES_DB: tachygraph
+    ports:
+      - "5432:5432"
+    volumes:
+      - tachy_data:/var/lib/postgresql/data
+      - ./config/postgresql.conf:/etc/postgresql/postgresql.conf
+      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    command: postgres -c config_file=/etc/postgresql/postgresql.conf
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 2G
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tachy_admin -d tachygraph"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - tachy_net
+
+  tachy_app:
+    build: ./app
+    container_name: tachygraph_app
+    restart: unless-stopped
+    depends_on:
+      tachy_db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://tachy_admin:tachy_password_2026@tachy_db:5432/tachygraph
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
+      OLLAMA_MODEL: qwen3-coder:30b
+      OLLAMA_EMBED_MODEL: mxbai-embed-large
+      FAISS_USE_GPU: "false"
+      FAISS_GPU_ID: "0"
+      FAISS_NLIST: "64"
+      FAISS_INDEX_DIR: /data/faiss
+      INGEST_DIR: /data/ingest
+      MMR_ON_INGEST: "false"
+      MMR_CRON_ENABLED: "false"
+      MMR_CRON_SCHEDULE: "0 */6 * * *"
+      SEARCH_BM25_WEIGHT: "0.1"
+      SEARCH_VECTOR_WEIGHT: "0.6"
+      SEARCH_TEMPORAL_WEIGHT: "0.3"
+      SEARCH_USE_HYDE: "false"
+      SEARCH_USE_DECOMPOSITION: "true"
+      SEARCH_USE_COMPRESSION: "true"
+      QA_CLUSTER_GLOBAL: "true"
+      QA_SKIP_LLM_EXTRACT: "true"
+      CF_ACCOUNT_ID: ""
+      CF_API_TOKEN: ""
+    ports:
+      - "8000:8000"
+    volumes:
+      - faiss_data:/data/faiss
+      - ./ingest:/data/ingest
+      - ./ui:/data/ui
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 4G
+    # Uncomment below for GPU-enabled deployment:
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+    networks:
+      - tachy_net
+
+  # Ollama runs locally on host — not needed in Docker
+  # ollama:
+  #   image: ollama/ollama:latest
+  #   container_name: tachygraph_ollama
+  #   volumes:
+  #     - ollama_models:/root/.ollama
+  #   ports:
+  #     - "11434:11434"
+  #   networks:
+  #     - tachy_net
+
+volumes:
+  tachy_data:
+    driver: local
+  faiss_data:
+    driver: local
+
+networks:
+  tachy_net:
+    driver: bridge
